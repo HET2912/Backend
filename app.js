@@ -9,7 +9,7 @@ const app = express();
 
 const allowedOrigins = [
   process.env.FRONTEND_ORIGIN || "http://localhost:5173",
-  "http://localhost:5174",
+  "http://localhost:5174" || "https://fin-x-dgj4.vercel.app/",
 ];
 
 app.use(
