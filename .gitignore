@@ -1,0 +1,85 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Dependency directories
+node_modules/
+jspm_packages/
+bower_components/
+vendor/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build outputs
+dist/
+build/
+out/
+target/
+bin/
+obj/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.class
+
+# Package management
+package-lock.json
+yarn.lock
+composer.lock
+Gemfile.lock
+poetry.lock
+Cargo.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.secret
+
+# Coverage reports
+coverage/
+.nyc_output/
+htmlcov/
+.tox/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# IDE specific
+*.iml
+*.ipr
+*.iws
+.attach_pid*
