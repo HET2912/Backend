@@ -8,7 +8,8 @@ const app = require("./app");
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-const allowedOrigins = [process.env.FRONTEND_ORIGIN || "http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = [process.env.FRONTEND_ORIGIN || "http://localhost:5173", "http://localhost:5174",
+  "https://fin-x-dgj4.vercel.app/"];
 
 mongoose
   .connect(MONGODB_URI)
