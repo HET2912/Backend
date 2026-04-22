@@ -17,9 +17,24 @@ app.use(cors({
   origin: true,
   credentials: true,
 }));
+app.use((req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  if (contentType.includes("multipart/form-data")) {
+    return next(); // 👈 let multer handle it
+  }
+  express.json()(req, res, next);
+});
+
+app.use((req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    return next();
+  }
+  express.urlencoded({ extended: true })(req, res, next);
+});
+
 app.use(cookieParser());
 
 app.get("/", (req, res) => {

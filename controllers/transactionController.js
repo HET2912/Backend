@@ -11,13 +11,8 @@ const parsePagination = (query) => {
 const buildTransactionFilter = (userId, query) => {
   const filter = { userId };
 
-  if (query.type) {
-    filter.type = query.type;
-  }
-
-  if (query.category) {
-    filter.categoryId = query.category;
-  }
+  if (query.type) filter.type = query.type;
+  if (query.category) filter.categoryId = query.category;
 
   if (query.startDate || query.endDate) {
     filter.date = {};
@@ -46,13 +41,16 @@ const buildTransactionFilter = (userId, query) => {
 
 const createTransaction = async (req, res, next) => {
   try {
-    const { amount, type, categoryId, date, notes, attachmentUrl } = req.body;
-
+    const { amount, type, categoryId, date, notes } = req.body;
+    
     if (!amount || !type || !categoryId) {
       const error = new Error("amount, type, and categoryId are required");
       error.statusCode = 400;
       return next(error);
     }
+
+    // req.uploadedAttachmentUrl is set by uploadAttachmentToCloudinary middleware
+    const attachmentUrl = req.uploadedAttachmentUrl || req.body.attachmentUrl || undefined;
 
     const transaction = await Transaction.create({
       userId: req.user._id,
@@ -128,11 +126,16 @@ const updateTransaction = async (req, res, next) => {
     }
 
     const updates = {};
-    ["amount", "type", "categoryId", "date", "notes", "attachmentUrl"].forEach((field) => {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
+    ["amount", "type", "categoryId", "date", "notes"].forEach((field) => {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
     });
+
+    // Prefer freshly-uploaded URL; fall back to an explicit URL in the body
+    if (req.uploadedAttachmentUrl) {
+      updates.attachmentUrl = req.uploadedAttachmentUrl;
+    } else if (req.body.attachmentUrl !== undefined) {
+      updates.attachmentUrl = req.body.attachmentUrl;
+    }
 
     const transaction = await Transaction.findOneAndUpdate(
       { _id: id, userId: req.user._id },
@@ -180,28 +183,15 @@ const getStats = async (req, res, next) => {
     const userObjectId = new mongoose.Types.ObjectId(String(req.user._id));
 
     const stats = await Transaction.aggregate([
-      {
-        $match: {
-          ...filter,
-          userId: userObjectId,
-        },
-      },
+      { $match: { ...filter, userId: userObjectId } },
       {
         $facet: {
           totals: [
             {
               $group: {
                 _id: null,
-                totalIncome: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
-                  },
-                },
-                totalExpense: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
-                  },
-                },
+                totalIncome: { $sum: { $cond: [{ $eq: ["$type", "income"] }, "$amount", 0] } },
+                totalExpense: { $sum: { $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0] } },
                 transactionCount: { $sum: 1 },
               },
             },
@@ -220,16 +210,8 @@ const getStats = async (req, res, next) => {
               $group: {
                 _id: "$categoryId",
                 totalAmount: { $sum: "$amount" },
-                incomeAmount: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
-                  },
-                },
-                expenseAmount: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
-                  },
-                },
+                incomeAmount: { $sum: { $cond: [{ $eq: ["$type", "income"] }, "$amount", 0] } },
+                expenseAmount: { $sum: { $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0] } },
                 count: { $sum: 1 },
               },
             },
@@ -237,15 +219,7 @@ const getStats = async (req, res, next) => {
               $lookup: {
                 from: "categories",
                 let: { categoryId: "$_id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $eq: [{ $toString: "$_id" }, "$$categoryId"],
-                      },
-                    },
-                  },
-                ],
+                pipeline: [{ $match: { $expr: { $eq: [{ $toString: "$_id" }, "$$categoryId"] } } }],
                 as: "category",
               },
             },
@@ -253,9 +227,7 @@ const getStats = async (req, res, next) => {
               $project: {
                 _id: 0,
                 categoryId: "$_id",
-                categoryName: {
-                  $ifNull: [{ $arrayElemAt: ["$category.name", 0] }, "Uncategorized"],
-                },
+                categoryName: { $ifNull: [{ $arrayElemAt: ["$category.name", 0] }, "Uncategorized"] },
                 totalAmount: 1,
                 incomeAmount: 1,
                 expenseAmount: 1,
@@ -267,20 +239,9 @@ const getStats = async (req, res, next) => {
           monthlyTrends: [
             {
               $group: {
-                _id: {
-                  year: { $year: "$date" },
-                  month: { $month: "$date" },
-                },
-                income: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
-                  },
-                },
-                expense: {
-                  $sum: {
-                    $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0],
-                  },
-                },
+                _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+                income: { $sum: { $cond: [{ $eq: ["$type", "income"] }, "$amount", 0] } },
+                expense: { $sum: { $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0] } },
               },
             },
             {
@@ -302,12 +263,7 @@ const getStats = async (req, res, next) => {
     const data = stats[0] || {};
     return res.status(200).json({
       success: true,
-      totals: data.totals?.[0] || {
-        totalIncome: 0,
-        totalExpense: 0,
-        transactionCount: 0,
-        net: 0,
-      },
+      totals: data.totals?.[0] || { totalIncome: 0, totalExpense: 0, transactionCount: 0, net: 0 },
       categoryBreakdown: data.categoryBreakdown || [],
       monthlyTrends: data.monthlyTrends || [],
     });

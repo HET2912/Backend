@@ -10,6 +10,7 @@ const wishlistRoutes = require("./wishlistRoutes");
 const categoryRoutes = require("./categoryRoutes");
 const chatRoutes = require("./chatRoutes");
 const notificationRoutes = require("./notificationRoutes");
+const oneToOneRoutes = require("./oneToOneRoutes");
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use("/notifications", notificationRoutes);
 router.use("/ai", aiRoutes);
 router.use("/wishlist", wishlistRoutes);
 router.use("/categories", categoryRoutes);
+router.use("/one-to-one-split", oneToOneRoutes);
 
 module.exports = router;

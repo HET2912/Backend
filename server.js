@@ -5,17 +5,15 @@ const http = require("http");
 const { Server } = require("socket.io");
 const app = require("./app");
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5033;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 const allowedOrigins = [process.env.FRONTEND_ORIGIN || "http://localhost:5173", "http://localhost:5174",
   "https://fin-x-dgj4.vercel.app/"];
 
 mongoose
-  .connect(MONGODB_URI)
+  .connect(process.env.MONGODB_URI)
   .then(() => {
-    console.log("✅ MongoDB connected successfully");
-
     const server = http.createServer(app);
 
     const io = new Server(server, {
@@ -45,8 +43,6 @@ mongoose
     });
 
     io.on("connection", (socket) => {
-      console.log("⚡️ Socket connected:", socket.id, "user:", socket.user?._id);
-
       // auto-join personal room
       if (socket.user && socket.user._id) {
         socket.join(socket.user._id.toString());
